@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Pesquisa de Filmes</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa; 
+        }
+
+        .container {
+            background-color: #ffffff; 
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #movieSuggestions {
+            position: absolute;
+            z-index: 999;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #movieSuggestions li {
+            cursor: pointer;
+        }
+
+        #movieSuggestions li:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Pesquisar Filme</h1>
+        <form th:action="@{/search}" method="post">
+            <div class="form-group">
+                <label for="movieName">Nome do Filme</label>
+                <input type="text" id="movieName" name="movieName" class="form-control" autocomplete="off" required>
+                <ul id="movieSuggestions" class="list-group mt-2" style="display: none;"></ul>
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
+
+        <!-- Exibição do filme encontrado -->
+        <div th:if="${movie != null}" class="mt-5">
+            <h2 th:text="${movie.title}"></h2>
+            <p><strong>Lançamento:</strong> 
+                <span th:text="${#dates.format(movie.releaseDate, 'dd/MM/yyyy')}"></span>
+            </p> 
+            <!-- Formatação da data -->
+            <p><strong>Sinopse:</strong> <span th:text="${movie.overview}"></span></p>
+            <p><strong>Avaliação:</strong> 
+                <span th:text="${movie.voteAverage != null ? movie.voteAverage : 'Não disponível'}"></span>
+            </p> 
+            <!-- Avaliação, com fallback -->
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#movieName').on('input', function() {
+                var query = $(this).val();
+                if (query.length >= 3) {
+                    $.ajax({
+                        url: 'https://api.themoviedb.org/3/search/movie?api_key=3f827a6e0b661d020f25fe6970135911&query=' + query + '&language=pt-BR',
+                        method: 'GET',
+                        success: function(data) {
+                            var suggestions = data.results;
+                            var suggestionList = $('#movieSuggestions');
+                            suggestionList.empty();  
+
+                            if (suggestions.length > 0) {
+                                suggestionList.show();
+                                suggestions.forEach(function(movie) {
+                                    suggestionList.append('<li class="list-group-item" data-id="' + movie.id + '">' + movie.title + '</li>');
+                                });
+                            } else {
+                                suggestionList.hide();
+                            }
+                        },
+                        error: function(error) {
+                            console.log("Erro ao buscar filmes:", error);
+                        }
+                    });
+                } else {
+                    $('#movieSuggestions').hide();
+                }
+            });
+
+            // Quando uma sugestão é clicada
+            $('#movieSuggestions').on('click', 'li', function() {
+                var selectedMovie = $(this).text();
+                $('#movieName').val(selectedMovie);
+                $('#movieSuggestions').hide();
+            });
+        });
+    </script>
+</body>
+</html>
